@@ -189,9 +189,18 @@ def main() -> int:
             barrier = body["barrier"]
             results.check("privacy redaction ran before storage",
                           body["privacy"]["exif_stripped"] is True, "EXIF not stripped")
-            results.check("a public report starts unverified",
-                          barrier["status"] == "unverified",
-                          f"status={barrier['status']}")
+            # A repeat run of this script posts to the same spot, so the
+            # deduplicator correctly folds it into the barrier created the
+            # first time - and that one keeps whatever status it already had.
+            # Only a genuinely new barrier is required to land unverified.
+            if body.get("action") == "created":
+                results.check("a new public report starts unverified",
+                              barrier["status"] == "unverified",
+                              f"status={barrier['status']}")
+            else:
+                results.check("a repeat report merges into the existing barrier",
+                              body["dedupe"].get("merged") is True,
+                              f"action={body.get('action')}")
             results.check("classifier returned a valid category",
                           body["cv"]["category"] in (
                               "blocked_ramp", "broken_lift", "narrow_path",
