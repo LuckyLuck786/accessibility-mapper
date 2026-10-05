@@ -286,12 +286,12 @@ function Shell() {
         {sidebarOpen && (
           <div
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden fixed inset-0 z-[450] bg-slate-950/50 backdrop-blur-sm"
+            className="lg:hidden fixed inset-0 z-[900] bg-slate-950/50 backdrop-blur-sm"
             aria-hidden="true"
           />
         )}
         <aside
-          className={`fixed inset-y-0 right-0 z-[500] flex w-[92vw] max-w-md flex-col gap-3 overflow-y-auto bg-slate-100 p-3 shadow-panel transition-transform duration-300 ease-out lg:static lg:h-auto lg:w-[400px] lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} ${pickTarget === 'report' ? 'pointer-events-none opacity-60' : ''}`}
+          className={`fixed inset-y-0 right-0 z-[950] flex w-[92vw] max-w-md flex-col gap-3 overflow-y-auto bg-slate-100 p-3 shadow-panel transition-transform duration-300 ease-out lg:static lg:h-auto lg:w-[400px] lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} ${pickTarget === 'report' ? 'pointer-events-none opacity-60' : ''}`}
           aria-label="Controls and information panels"
         >
           {/* Mobile close button */}
