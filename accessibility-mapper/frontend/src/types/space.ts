@@ -112,15 +112,19 @@ export interface Explanation {
   method?: string | null
 }
 
-export interface MatchedRoom extends Room {
+export interface MatchedRoom {
+  room: Room
   rank: number
   latitude: number
   longitude: number
   straight_line_m: number
   reasons: string[]
+  is_step_free_access?: boolean
+  has_accessible_features?: boolean
 }
 
-export interface ExcludedRoom extends Room {
+export interface ExcludedRoom {
+  room: Room
   reason: string
   reason_code: 'capacity' | 'booked' | 'not_step_free' | 'unreachable'
   barrier_id?: number | null

@@ -126,15 +126,35 @@ class ExplanationOut(BaseModel):
     method: str | None = None
 
 
-class MatchedRoomOut(RoomOut):
+class MatchedRoomOut(BaseModel):
+    """A room the student can actually take.
+
+    The room itself is nested rather than flattened in: the decision fields sit
+    next to it, and flattening would collide on names like ``status``.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    room: RoomOut
     rank: int = 1
     latitude: float
     longitude: float
     straight_line_m: float
     reasons: list[str] = Field(default_factory=list)
+    is_step_free_access: bool = False
+    has_accessible_features: bool = False
 
 
-class ExcludedRoomOut(RoomOut):
+class ExcludedRoomOut(BaseModel):
+    """A room that was ruled out, plus the sentence explaining why.
+
+    ``category`` / ``barrier_id`` are populated only for ``unreachable``: they
+    name the specific barrier that severed the route.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    room: RoomOut
     reason: str
     reason_code: str
     barrier_id: int | None = None
