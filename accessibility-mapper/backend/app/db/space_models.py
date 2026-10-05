@@ -178,7 +178,11 @@ class Booking(Base):
             "released_at": _iso(self.released_at),
             "reclaimed_at": _iso(self.reclaimed_at),
             "completed_at": _iso(self.completed_at),
-            "simulated_will_show": self.simulated_will_show,
+            # NOTE: ``simulated_will_show`` is deliberately NOT serialised. It is
+            # the seed's ground truth for who will actually turn up, so exposing
+            # it would hand a viewer the answer before the engine has reasoned
+            # its way there - and the demo is the whole point of the board. The
+            # column stays for the simulator and the tests.
         }
 
 

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  CalendarClock,
+  DoorOpen,
   Flame,
+  LayoutDashboard,
   Loader2,
   MapPin,
   Plus,
@@ -9,14 +12,19 @@ import {
   WifiOff,
 } from 'lucide-react'
 import { AdminDashboard } from '@/components/AdminDashboard'
+import { FindARoom } from '@/components/ghostspace/FindARoom'
+import { GhostSpaceAdmin } from '@/components/ghostspace/GhostSpaceAdmin'
+import { GhostSpaceBoard } from '@/components/ghostspace/GhostSpaceBoard'
+import { GhostSpaceMetrics } from '@/components/ghostspace/GhostSpaceMetrics'
 import { AccessibilityPanel } from '@/components/AccessibilityPanel'
 import { BarrierDetailCard } from '@/components/BarrierDetailCard'
 import { BarrierReportModal } from '@/components/BarrierReportModal'
 import { MapView } from '@/components/MapView'
 import { RoutePanel } from '@/components/RoutePanel'
-import { Badge, Button, relativeTime } from '@/components/ui'
+import { Badge, Button, Card, relativeTime } from '@/components/ui'
 import { useCampusData } from '@/hooks/useCampusData'
 import { SettingsProvider, useSettings } from '@/hooks/useSettings'
+import { getAdminToken } from '@/services/api'
 import type { Barrier, RoutePlan } from '@/types'
 
 const CAMPUS_CENTER: [number, number] = [47.6555, -122.306]
@@ -32,11 +40,23 @@ export default function App() {
 
 type PickTarget = 'origin' | 'destination' | 'report' | null
 
+type View = 'map' | 'rooms' | 'ghost' | 'admin'
+
+const VIEWS: { id: View; label: string; icon: typeof LayoutDashboard; hint: string }[] = [
+  { id: 'map', label: 'Map', icon: LayoutDashboard, hint: 'Campus map, barriers and step-free routing' },
+  { id: 'rooms', label: 'Find a Room', icon: DoorOpen, hint: 'Rooms that are free and reachable right now' },
+  { id: 'ghost', label: 'Ghost Space', icon: CalendarClock, hint: 'Release board, demo clock and metrics' },
+  { id: 'admin', label: 'Admin', icon: Wrench, hint: 'Facilities controls and Ghost Space overrides' },
+]
+
 function Shell() {
   const { settings, toggle } = useSettings()
   const { overview, barriers, network, presets, categories, error, loading, lastUpdated, refresh } =
     useCampusData()
 
+  const [view, setView] = useState<View>('map')
+  const [metricsToken, setMetricsToken] = useState(0)
+  const canControl = Boolean(getAdminToken())
   const [route, setRoute] = useState<RoutePlan | null>(null)
   const [selectedBarrier, setSelectedBarrier] = useState<Barrier | null>(null)
   const [reportOpen, setReportOpen] = useState(false)
@@ -176,8 +196,32 @@ function Shell() {
             <span className="hidden sm:inline">Report barrier</span>
           </Button>
         </span>
+
+        <nav
+          aria-label="Primary"
+          className="order-last flex w-full shrink-0 gap-1 overflow-x-auto border-t border-slate-100 pt-2 sm:order-none sm:w-auto sm:border-0 sm:pt-0"
+        >
+          {VIEWS.map(({ id, label, icon: Icon, hint }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setView(id)}
+              aria-current={view === id ? 'page' : undefined}
+              title={hint}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold ring-1 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-campus-600 ${
+                view === id
+                  ? 'bg-campus-700 text-white ring-campus-700'
+                  : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              <Icon className="h-4 w-4" aria-hidden />
+              <span className="whitespace-nowrap">{label}</span>
+            </button>
+          ))}
+        </nav>
       </header>
 
+      {view === 'map' ? (
       <div id="main-content" className="relative flex min-h-0 flex-1">
         {/* --- map ------------------------------------------------------ */}
         <main className="relative min-w-0 flex-1">
@@ -258,6 +302,53 @@ function Shell() {
           </footer>
         </aside>
       </div>
+      ) : (
+        <main id="main-content" className="min-h-0 flex-1 overflow-y-auto bg-slate-100 p-3 sm:p-4">
+          <div className="mx-auto max-w-6xl">
+            {view === 'rooms' && (
+              <FindARoom
+                origin={{ latitude: CAMPUS_CENTER[0], longitude: CAMPUS_CENTER[1], label: 'Red Square' }}
+                onRoute={(coordinates) => {
+                  setRoute({
+                    coordinates,
+                    found: true,
+                  } as RoutePlan)
+                  setView('map')
+                  setToast('Route drawn from Red Square to the chosen room.')
+                }}
+              />
+            )}
+
+            {view === 'ghost' && (
+              <div className="space-y-6">
+                <GhostSpaceBoard canControl={canControl} onChanged={() => setMetricsToken((t) => t + 1)} />
+                <hr className="border-slate-200" />
+                <GhostSpaceMetrics refreshToken={metricsToken} />
+              </div>
+            )}
+
+            {view === 'admin' && (
+              <div className="space-y-6">
+                <GhostSpaceAdmin onChanged={() => setMetricsToken((t) => t + 1)} />
+                <hr className="border-slate-200" />
+                <Card>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-base font-bold text-slate-900">Facilities dashboard</h2>
+                      <p className="text-xs text-slate-600">
+                        Barrier tickets, analytics, audit trail and barrier resolution.
+                      </p>
+                    </div>
+                    <Button onClick={() => setAdminOpen(true)}>
+                      <Wrench className="h-4 w-4" aria-hidden /> Open facilities dashboard
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            )}
+          </div>
+        </main>
+      )}
 
       <BarrierReportModal
         open={reportOpen}

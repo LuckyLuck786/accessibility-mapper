@@ -60,6 +60,8 @@ export interface BoardBooking extends Booking {
   headcount: number
   state: BoardState
   probability: number
+  /** The explanation recorded when the engine acted on this booking. */
+  decision?: Explanation | null
 }
 
 export interface BoardRoom extends Room {

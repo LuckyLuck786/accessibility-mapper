@@ -71,6 +71,8 @@ class BoardBookingOut(BookingOut):
     headcount: int = 0
     state: str
     probability: float = 0.0
+    #: The explanation recorded when the engine acted on this booking.
+    decision: dict[str, Any] | None = None
 
 
 class BoardRoomOut(RoomOut):

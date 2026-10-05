@@ -1308,6 +1308,17 @@ def metrics(db: Session) -> dict[str, Any]:
     }
 
 
+def _stored_decision(booking: Booking) -> dict[str, Any] | None:
+    """The explanation the engine recorded for this booking, if any."""
+    if not booking.decision_json:
+        return None
+    try:
+        parsed = json.loads(booking.decision_json)
+    except (TypeError, ValueError):  # pragma: no cover - defensive
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
 def board(db: Session, *, date: str | None = None) -> dict[str, Any]:
     """The Ghost Space timeline: rooms x bookings, colour-coded by state."""
     at = now(db)
@@ -1351,6 +1362,9 @@ def board(db: Session, *, date: str | None = None) -> dict[str, Any]:
                     "headcount": headcount,
                     "state": _booking_state(booking, headcount, at),
                     "probability": no_show_probability(db, booking, at)["p_noshow"],
+                    # The real stored decision, so the explainer shows what the
+                    # engine actually concluded rather than a client-side guess.
+                    "decision": _stored_decision(booking),
                 }
             )
         rows.append({**room.to_dict(), "bookings": entries})
