@@ -1,6 +1,6 @@
 # Ghost Space — 3-minute demo script
 
-**URL:** https://ghost-space-two.vercel.app
+**URL:** https://accessibility-mapper-sandy.vercel.app
 **Admin token:** paste into **Admin** in the app (or `export ADMIN_TOKEN=…`). It is
 never bundled into the JavaScript.
 
@@ -125,4 +125,4 @@ Close on:
 | Clock controls greyed out | No admin token. **Admin** → paste token → **Save**. |
 | Board shows "Live clock" | Same — set the token, then press **Reset**. |
 | No releases appear | Press **Reset**, then **Simulate occupancy**, then set **x300** + **Play**. |
-| Everything 500s | Check you're on `ghost-space-two.vercel.app`, not a stale per-deployment URL. |
+| Everything 500s | Check you're on `accessibility-mapper-sandy.vercel.app`, not a stale per-deployment URL. |

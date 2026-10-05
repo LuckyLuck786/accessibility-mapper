@@ -1,6 +1,6 @@
 # Ghost Space — AI Accessibility Barrier Mapper + ghost-room release engine
 
-**Live:** https://ghost-space-two.vercel.app
+**Live:** https://accessibility-mapper-sandy.vercel.app
 
 > Campus space and campus accessibility are one problem. Ghost Space finds
 > booked-but-empty rooms and releases them. The Barrier Mapper knows which routes
@@ -183,7 +183,7 @@ so there is no CORS configuration and the frontend uses relative URLs.
 
 ```bash
 git init && git add -A && git commit -m "Ghost Space"
-git remote add origin git@github.com:<you>/ghost-space.git && git push -u origin main
+git remote add origin git@github.com:<you>/accessibility-mapper.git && git push -u origin main
 
 vercel link
 vercel --prod          # attach Neon from the Marketplace when prompted
