@@ -152,7 +152,9 @@ function Shell() {
         Skip to map
       </a>
 
-      <header className="z-[600] flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 shadow-sm sm:flex-nowrap">
+      {/* Single-row header only from lg up: at sm–md the actions (~380px with
+          labels) + nav (~330px) overflow 768px and crush the flex-1 title to 0. */}
+      <header className="z-[600] flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 shadow-sm lg:flex-nowrap">
         <img src="/favicon.svg" alt="" className="hidden h-8 w-8 sm:block" onError={(event) => { event.currentTarget.style.display = 'none' }} />
         {/* flex-1 (basis-0) lets the title share row 1 with the actions even when
             flex-wrap breaks lines on content width — prevents a 3-row header. */}
@@ -217,7 +219,7 @@ function Shell() {
 
         <nav
           aria-label="Primary"
-          className="mt-1.5 flex w-full flex-wrap items-center gap-1.5 sm:mt-0 sm:w-auto sm:flex-nowrap"
+          className="mt-1.5 flex w-full flex-wrap items-center gap-1.5 lg:mt-0 lg:w-auto lg:flex-nowrap"
         >
           {VIEWS.map(({ id, label, icon: Icon, hint }) => (
             <button
