@@ -201,8 +201,8 @@ export function GhostSpaceBoard({ canControl, onChanged }: GhostSpaceBoardProps)
 
       {/* timeline */}
       <div className="overflow-x-auto rounded-2xl bg-white p-3 ring-1 ring-slate-200">
-        <div className="min-w-[720px]">
-          <div className="relative mb-1 flex justify-between px-[190px] text-[10px] font-semibold text-slate-400">
+        <div className="min-w-[600px] sm:min-w-[720px]">
+          <div className="relative mb-1 flex justify-between px-[150px] sm:px-[190px] text-[10px] font-semibold text-slate-400">
             {Array.from({ length: (DAY_END_HOUR - DAY_START_HOUR) / 2 + 1 }, (_, index) => (
               <span key={index}>{String(DAY_START_HOUR + index * 2).padStart(2, '0')}:00</span>
             ))}
@@ -212,7 +212,7 @@ export function GhostSpaceBoard({ canControl, onChanged }: GhostSpaceBoardProps)
             {nowPercent !== null && (
               <div
                 className="pointer-events-none absolute inset-y-0 z-10 w-px bg-slate-900/70"
-                style={{ left: `calc(190px + (100% - 190px) * ${nowPercent / 100})` }}
+                style={{ left: `calc(150px + (100% - 190px) * ${nowPercent / 100})` }}
                 aria-hidden
               />
             )}
@@ -259,7 +259,7 @@ function RoomRow({ room, canControl, busy, onExplain, onReclaim, onCheckIn }: Ro
   return (
     <div className="rounded-lg px-1 py-0.5 hover:bg-slate-50">
       <div className="flex items-center gap-2">
-        <div className="w-[180px] shrink-0 truncate text-xs">
+        <div className="w-[150px] shrink-0 truncate text-xs sm:w-[180px]">
           <span className="font-semibold text-slate-800">{room.name}</span>
           <span className="block text-[10px] text-slate-500">
             {room.building} · {room.floor} · {room.capacity} seats
@@ -302,7 +302,7 @@ function RoomRow({ room, canControl, busy, onExplain, onReclaim, onCheckIn }: Ro
       </div>
 
       {open && (
-        <ul className="ml-[190px] mt-1 space-y-1 rounded-lg bg-slate-50 p-2 text-[11px] ring-1 ring-slate-200">
+        <ul className="ml-[150px] mt-1 sm:ml-[190px] space-y-1 rounded-lg bg-slate-50 p-2 text-[11px] ring-1 ring-slate-200">
           {room.bookings.length === 0 && <li className="text-slate-500">No bookings this day.</li>}
           {room.bookings.map((booking) => (
             <li key={booking.id} className="flex flex-wrap items-center gap-2">

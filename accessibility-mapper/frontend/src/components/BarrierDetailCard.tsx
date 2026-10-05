@@ -65,7 +65,7 @@ export function BarrierDetailCard({ barrier, onClose, onUpdated }: BarrierDetail
 
       {barrier.description && <p className="mt-2 text-sm text-slate-700">{barrier.description}</p>}
 
-      <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+      <dl className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
         <div className="rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-slate-200">
           <dt className="font-semibold text-slate-500">Reported</dt>
           <dd className="text-slate-800">

@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Loader2,
   MapPin,
+  PanelLeft,
   Plus,
   Settings2,
   Wrench,
@@ -62,6 +63,7 @@ function Shell() {
   const [reportOpen, setReportOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [pickTarget, setPickTarget] = useState<PickTarget>(null)
   const [pickedPoint, setPickedPoint] = useState<{ latitude: number; longitude: number } | null>(null)
   const [focus, setFocus] = useState<{ latitude: number; longitude: number; zoom?: number } | null>(null)
@@ -83,6 +85,16 @@ function Shell() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [])
+
+  // Lock body scroll when the mobile sidebar is open
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [sidebarOpen])
 
   const handleMapClick = useCallback(
     (latitude: number, longitude: number) => {
@@ -132,7 +144,7 @@ function Shell() {
   }, [barriers])
 
   return (
-    <div className="flex h-full flex-col bg-slate-100">
+    <div className={`flex h-full flex-col bg-slate-100 ${sidebarOpen ? 'overflow-hidden' : ''}`}>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[1200] focus:rounded-lg focus:bg-campus-700 focus:px-3 focus:py-2 focus:text-white"
@@ -199,7 +211,7 @@ function Shell() {
 
         <nav
           aria-label="Primary"
-          className="order-last flex w-full shrink-0 gap-1 overflow-x-auto border-t border-slate-100 pt-2 sm:order-none sm:w-auto sm:border-0 sm:pt-0"
+          className="w-full shrink-0 overflow-x-auto sm:order-none sm:w-auto"
         >
           {VIEWS.map(({ id, label, icon: Icon, hint }) => (
             <button
@@ -249,15 +261,41 @@ function Shell() {
             onMapClick={handleMapClick}
             onBarrierSelect={setSelectedBarrier}
           />
+
+          {/* Mobile sidebar toggle */}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open route planner"
+            className="absolute left-3 top-3 z-[450] flex items-center gap-1.5 rounded-xl bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-300 shadow-md hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-campus-600 lg:hidden"
+          >
+            <PanelLeft className="h-4 w-4" aria-hidden />
+            <span>Route planner</span>
+          </button>
         </main>
 
-        {/* --- sidebar ---------------------------------------------------- */}
+        {/* --- sidebar (slide-in on mobile) -------------------------------- */}
+        {sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden fixed inset-0 z-[450] bg-slate-950/50 backdrop-blur-sm"
+            aria-hidden="true"
+          />
+        )}
         <aside
-          className={`absolute inset-y-0 right-0 z-[500] w-[380px] max-w-[92vw] space-y-3 overflow-y-auto bg-slate-100 p-3 shadow-panel transition-transform lg:static lg:z-auto lg:translate-x-0 ${
-            pickTarget === 'report' ? 'pointer-events-none opacity-60' : ''
-          }`}
+          className={`fixed inset-y-0 right-0 z-[500] flex w-[92vw] max-w-md flex-col gap-3 overflow-y-auto bg-slate-100 p-3 shadow-panel transition-transform duration-300 ease-out lg:static lg:h-auto lg:w-[400px] lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} ${pickTarget === 'report' ? 'pointer-events-none opacity-60' : ''}`}
           aria-label="Controls and information panels"
         >
+          {/* Mobile close button */}
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close route planner"
+            className="absolute top-2 right-2 rounded-lg p-1 text-slate-500 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-campus-600 lg:hidden"
+          >
+            <span className="sr-only">Close</span>
+            ✕
+          </button>
           {selectedBarrier && (
             <BarrierDetailCard
               barrier={selectedBarrier}

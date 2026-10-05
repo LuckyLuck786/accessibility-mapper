@@ -103,7 +103,7 @@ export function FindARoom({ origin, onRoute }: FindARoomProps) {
   const unreachable = response?.excluded.filter((item) => item.reason_code === 'unreachable') ?? []
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[340px_minmax(0,1fr)]">
+    <div className="grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]">
       <Card className="space-y-3 self-start">
         <div>
           <h2 className="text-base font-bold text-slate-900">Find a room</h2>

@@ -217,7 +217,7 @@ export function BarrierReportModal({
               <legend className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 What is blocking the way? <span className="font-normal normal-case">(optional - CV will detect it)</span>
               </legend>
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-1 gap-1.5 xs:grid-cols-2">
                 {categories.map((info) => (
                   <button
                     key={info.category}

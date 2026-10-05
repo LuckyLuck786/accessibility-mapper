@@ -294,7 +294,7 @@ function RouteResultCard({
         </Badge>
       </header>
 
-      <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
+      <dl className="mt-3 grid grid-cols-1 gap-2 text-center sm:grid-cols-3">
         <div className="rounded-xl bg-slate-50 px-2 py-2 ring-1 ring-slate-200">
           <dt className="text-[11px] font-semibold uppercase text-slate-500">Distance</dt>
           <dd className="text-lg font-bold text-slate-900">{route.distance_text}</dd>

@@ -128,7 +128,7 @@ export function AdminDashboard({ open, onClose, onChanged, onFocusBarrier }: Adm
           {loading && !analytics && <Spinner label="Loading dashboard" />}
 
           {kpis && (
-            <section aria-label="Key metrics" className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+            <section aria-label="Key metrics" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
               <StatTile label="Active barriers" value={kpis.active_barriers} tone="text-red-600" />
               <StatTile label="Verified" value={kpis.verified_active} />
               <StatTile label="In progress" value={kpis.in_progress} tone="text-sky-600" />
