@@ -1,0 +1,41 @@
+# --- secrets ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- local data ------------------------------------------------------------
+# Never deploy the local SQLite database, uploaded media, or seeded artefacts.
+accessibility-mapper/backend/data/
+accessibility-mapper/backend/media/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+
+# --- node / frontend build output -----------------------------------------
+node_modules/
+dist/
+*.tsbuildinfo
+.vite/
+
+# --- vercel ----------------------------------------------------------------
+.vercel
+
+# --- os / editors ----------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

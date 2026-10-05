@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --abm-marker-size: 30px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* --- custom barrier markers ------------------------------------------ */
+.abm-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.abm-marker-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size, 30px);
+  height: var(--size, 30px);
+  font-size: calc(var(--size, 30px) * 0.5);
+  color: #fff;
+  border-radius: 9999px;
+  border: 2.5px solid #fff;
+  box-shadow: 0 2px 8px rgba(12, 35, 64, 0.4);
+  user-select: none;
+}
+
+.abm-marker-inner.ring-dashed {
+  border-style: dashed;
+}
+
+@keyframes abm-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55), 0 2px 8px rgba(12, 35, 64, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 9px rgba(220, 38, 38, 0), 0 2px 8px rgba(12, 35, 64, 0.4);
+  }
+}
+
+.abm-pulse {
+  animation: abm-pulse 2s ease-in-out infinite;
+}
+
+/* --- map chrome ------------------------------------------------------- */
+.leaflet-container {
+  font-family: inherit;
+  background: #dfe7ef;
+}
+
+.leaflet-tooltip {
+  border-radius: 0.6rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 6px 18px rgba(12, 35, 64, 0.12);
+}
+
+.leaflet-bar a {
+  color: #0c2340;
+}
+
+/* --- high contrast mode (Phase 5.4) ----------------------------------- */
+html.hc {
+  filter: contrast(1.18) saturate(1.25);
+}
+
+html.hc .abm-marker-inner {
+  border-color: #000;
+  outline: 2px solid #fff;
+}
+
+html.hc .leaflet-tile {
+  filter: grayscale(0.35) contrast(1.1);
+}
+
+/* --- reduced motion --------------------------------------------------- */
+html[data-reduce-motion='true'] .abm-pulse {
+  animation: none;
+}
+
+html[data-reduce-motion='true'] * {
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+}
+
+/* --- focus visibility -------------------------------------------------- */
+:focus-visible {
+  outline-width: 2px;
+  outline-style: solid;
+  outline-offset: 2px;
+}
+
+/* --- scrollbars -------------------------------------------------------- */
+aside::-webkit-scrollbar,
+main::-webkit-scrollbar {
+  width: 8px;
+}
+aside::-webkit-scrollbar-thumb,
+main::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}

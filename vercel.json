@@ -1,0 +1,23 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm --prefix accessibility-mapper/frontend ci && npm --prefix accessibility-mapper/frontend run build",
+  "outputDirectory": "accessibility-mapper/frontend/dist",
+  "framework": null,
+  "installCommand": "echo skipped",
+  "functions": {
+    "api/index.py": {
+      "memory": 1769,
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.py" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
+  ]
+}

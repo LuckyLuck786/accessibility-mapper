@@ -1,0 +1,68 @@
+# ---------------------------------------------------------------------------
+# AI Accessibility Barrier Mapper - full stack
+#   docker compose up --build
+#   frontend  ->  http://localhost:5173
+#   api docs  ->  http://localhost:8000/docs
+#
+# The PostGIS service is optional: the API falls back to zero-config SQLite
+# when it cannot reach DATABASE_URL, so `uvicorn app.main:app` also works.
+# ---------------------------------------------------------------------------
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: abm-postgis
+    environment:
+      POSTGRES_USER: campus
+      POSTGRES_PASSWORD: campus
+      POSTGRES_DB: accessibility
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/app/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campus -d accessibility"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: abm-api
+    environment:
+      DATABASE_URL: postgresql+psycopg://campus:campus@db:5432/accessibility
+      USE_POSTGIS: "true"
+      MEDIA_ROOT: /data/media
+      AUTO_SEED: "true"
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:4173"]'
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - media:/data/media
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    image: node:22-alpine
+    container_name: abm-frontend
+    working_dir: /app
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api/v1
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - node_modules:/app/node_modules
+    depends_on:
+      - api
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+volumes:
+  pgdata:
+  media:
+  node_modules:

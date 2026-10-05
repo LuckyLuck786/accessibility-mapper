@@ -1,0 +1,38 @@
+# ---------------------------------------------------------------------------
+# AI Accessibility Barrier Mapper - backend runtime dependencies
+# Python 3.11+ (tested on 3.11 / 3.12 / 3.13)
+# ---------------------------------------------------------------------------
+
+# --- Core API ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20          # multipart/form-data (image uploads)
+pydantic==2.10.4
+pydantic-settings==2.7.0
+email-validator==2.2.0
+PyJWT==2.10.1
+
+# --- Persistence ---
+SQLAlchemy==2.0.36
+# GeoAlchemy2 + psycopg are only needed for the optional PostGIS deployment.
+# The zero-config default runs on SQLite; docker-compose enables PostGIS.
+GeoAlchemy2==0.16.0
+shapely==2.0.6
+
+# --- Routing engine ---
+networkx==3.4.2
+
+# --- Computer vision / privacy ---
+# OpenCV handles face + license-plate redaction (Haar cascades ship with the wheel).
+opencv-python-headless==4.10.0.84
+numpy==2.2.1
+Pillow==11.0.0
+
+# --- Optional: real YOLOv8 barrier detector -------------------------------
+# The CV service auto-detects the ultralytics package at runtime and falls back
+# to its built-in deterministic heuristic detector when it is absent, so the
+# prototype is always demoable without a ~2 GB torch download.
+#     pip install -r requirements-cv.txt
+
+# --- Infrastructure ---
+httpx==0.28.1                     # TestClient + health probes

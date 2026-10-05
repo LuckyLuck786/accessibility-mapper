@@ -1,0 +1,13 @@
+# ---------------------------------------------------------------------------
+# OPTIONAL extras - real YOLOv8 inference for the barrier detector.
+#
+#   pip install -r requirements-cv.txt
+#   export BARRIER_YOLO_WEIGHTS=./models/barrier_yolov8.pt
+#
+# Without these the CV service automatically uses its deterministic
+# heuristic detector (engine: "heuristic") and every endpoint still works.
+# The privacy/redaction pipeline (OpenCV) is ALWAYS active either way.
+# ---------------------------------------------------------------------------
+ultralytics==8.3.58
+torch>=2.2.0
+torchvision>=0.17.0
