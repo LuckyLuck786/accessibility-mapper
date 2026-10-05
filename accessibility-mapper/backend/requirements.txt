@@ -9,7 +9,6 @@ uvicorn[standard]==0.34.0
 python-multipart==0.0.20          # multipart/form-data (image uploads)
 pydantic==2.10.4
 pydantic-settings==2.7.0
-email-validator==2.2.0
 PyJWT==2.10.1
 
 # --- Persistence ---

@@ -44,8 +44,14 @@ def client_key(request_ip: str | None, reporter_label: str | None) -> str:
 
 
 def store_analysis(db: Session, analysis) -> dict[str, Any]:
-    """Persist one :class:`AnalysisResult` and return its URLs."""
-    return analysis.store(db)  # type: ignore[attr-defined]
+    """Persist one :class:`AnalysisResult` and return its URLs.
+
+    The write itself lives on :class:`~app.services.cv_service.CVService`
+    because it needs the redaction encoder that produced ``analysis``.
+    """
+    from app.services.cv_service import cv_service
+
+    return cv_service.store(db, analysis)
 
 
 def attach_to_barrier(db: Session, barrier: Barrier, stored: dict[str, Any]) -> None:
@@ -189,7 +195,7 @@ def clock_now(db: Session) -> datetime:
     base = datetime.fromisoformat(state["base"])
     if base.tzinfo is None:
         base = base.replace(tzinfo=UTC)
-    elapsed = (datetime.now(UTC) - base).timestamp() * float(state.get("speed", 1.0))
+    elapsed = (datetime.now(UTC) - base).total_seconds() * float(state.get("speed", 1.0))
     return base + timedelta(seconds=float(state.get("offset_seconds", 0.0)) + elapsed)
 
 

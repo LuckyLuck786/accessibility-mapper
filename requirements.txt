@@ -17,7 +17,6 @@ pydantic==2.10.4
 pydantic-settings==2.7.0
 python-multipart==0.0.20      # multipart/form-data image uploads
 PyJWT==2.10.1
-email-validator==2.2.0        # pydantic EmailStr on the auth schemas
 
 # Persistence: hosted Postgres (Neon) via psycopg binary wheel, NullPool.
 SQLAlchemy==2.0.36

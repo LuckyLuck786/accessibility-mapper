@@ -72,9 +72,10 @@ def db_session():
         seed(session, reset=True)
         session.expire_all()
         graph_service.invalidate()
-        # Pin the clock into the middle of the seeded teaching day so release
-        # rules have something in flight to act on.
-        anchor = space_service._demo_anchor() + timedelta(hours=3)
+        # Pin the clock to the busiest part of the seeded teaching day (17:00 on
+        # the demo day: four bookings in flight, two of them ghosts already past
+        # the grace period) so the release rule has something to act on.
+        anchor = space_service._demo_anchor() + timedelta(hours=8)
         space_service.set_clock(session, mode="demo", jump_to=anchor, speed=1.0)
         session.commit()
         yield session

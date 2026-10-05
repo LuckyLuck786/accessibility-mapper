@@ -35,7 +35,7 @@ from app.db.models import (
 )
 from app.services.cv_service import AnalysisResult, cv_service
 from app.services.graph_service import graph_service
-from app.services.media_service import clock_now
+from app.services.media_service import clock_now, store_analysis
 from app.services.ticket_service import (
     open_ticket_for_barrier,
     resolve_ticket_for_barrier,
@@ -89,7 +89,7 @@ def submit_report(
     analysis = cv_service.process(
         image_bytes, note=description, category_hint=category_hint
     )
-    stored = analysis.store(db)
+    stored = store_analysis(db, analysis)
 
     final_category = category_hint or analysis.category
     if final_category not in CATEGORY_COLORS:

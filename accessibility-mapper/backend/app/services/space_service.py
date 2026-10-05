@@ -48,7 +48,7 @@ from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from typing import Any, Iterable, Sequence
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -244,11 +244,36 @@ def smoothed_prior(
     }
 
 
-def observed_headcount(db: Session, room_id: str, since: datetime | None = None) -> int:
-    """Latest headcount for a room (0 when nothing has been reported)."""
+def observed_headcount(
+    db: Session,
+    room_id: str,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    booking_id: int | None = None,
+) -> int:
+    """Latest headcount for a room (0 when nothing has been reported).
+
+    ``until`` bounds the lookup so a decision taken at instant T never reads a
+    signal recorded after T. Without it the engine would peek at the future and
+    a room could be released because it was empty *so far*.
+
+    When ``booking_id`` is given, signals attributed to a *different* booking in
+    the same room are ignored: a room being busy at 3pm says nothing about
+    whether the 10am booking ever started. Signals with no booking attribution
+    are still counted, because they still describe people physically present.
+    """
     stmt = select(OccupancySignal).where(OccupancySignal.room_id == room_id)
     if since is not None:
         stmt = stmt.where(OccupancySignal.ts >= since)
+    if until is not None:
+        stmt = stmt.where(OccupancySignal.ts <= until)
+    if booking_id is not None:
+        stmt = stmt.where(
+            or_(
+                OccupancySignal.booking_id == booking_id,
+                OccupancySignal.booking_id.is_(None),
+            )
+        )
     stmt = stmt.order_by(OccupancySignal.ts.desc()).limit(1)
     signal = db.scalar(stmt)
     return int(signal.headcount) if signal is not None else 0
@@ -279,35 +304,45 @@ def no_show_probability(
     if elapsed_override is not None:
         minutes = float(elapsed_override)
 
-    headcount = observed_headcount(db, booking.room_id, since=start)
+    headcount = observed_headcount(
+        db, booking.room_id, since=start, until=at, booking_id=booking.id
+    )
     prior, provenance = smoothed_prior(db, booking.organizer_type, start)
 
-    # Live evidence: a room that has been running with a non-zero headcount is
-    # demonstrably occupied. An empty room that is merely *early* is not yet
-    # evidence of a no-show, so the prior only decays once the grace period has
-    # passed.
+    # Live evidence. ``prior`` is a historical *no-show* rate; it answers "would
+    # this organiser's booking usually be empty?". The clock answers a different
+    # question - "are they still on their way?" - and that probability decays as
+    # the silence grows. So we combine them as
+    #
+    #     p_noshow = 1 - (1 - prior) * still_coming
+    #
+    # which starts at the bare prior the moment grace ends and climbs towards 1
+    # as the room stays empty. (Scaling the prior itself by a decay factor would
+    # say the opposite of what we mean: longer silence, *lower* no-show odds.)
     grace = settings.ghost_grace_minutes
+    still_coming = 1.0
     if headcount > 0:
-        live = 0.02
+        probability = 0.02
         live_reason = f"headcount {headcount} observed - room is in use"
     elif minutes < grace:
-        decay = 0.0
-        live = max(PRIOR_FLOOR, prior * (1.0 - decay))
+        # Too early to call. An empty room that is merely *early* is not yet
+        # evidence of a no-show, so the historical prior stands on its own.
+        probability = prior
         live_reason = (
             f"only {minutes:.0f} min since start (grace period {grace} min) - "
             "too early to call"
         )
     else:
         excess = minutes - grace
-        decay = 1.0 - 0.5 ** (excess / LIVENESS_HALF_LIFE_MIN)
-        live = max(PRIOR_FLOOR, prior * (1.0 - decay))
+        still_coming = 0.5 ** (excess / LIVENESS_HALF_LIFE_MIN)
+        probability = 1.0 - (1.0 - prior) * still_coming
         live_reason = (
             f"{excess:.0f} min past the {grace} min grace period with zero "
-            f"headcount - likelihood they turn up has halved every "
-            f"{LIVENESS_HALF_LIFE_MIN:.0f} min"
+            f"headcount - chance they are still on their way has halved every "
+            f"{LIVENESS_HALF_LIFE_MIN:.0f} min (now {still_coming:.0%})"
         )
 
-    probability = float(min(1.0, max(0.0, live)))
+    probability = float(min(1.0, max(PRIOR_FLOOR, max(0.0, probability))))
 
     evidence = [
         {
@@ -347,15 +382,18 @@ def no_show_probability(
     return {
         "p_noshow": round(probability, 4),
         "prior": round(prior, 4),
-        "live_component": round(live, 4),
+        "live_component": round(still_coming, 4),
         "minutes_since_start": round(minutes, 1),
         "grace_period_minutes": grace,
         "headcount": headcount,
         "evidence": evidence,
         "method": (
             "Beta-smoothed historical no-show rate for (organizer_type, weekday, "
-            "hour), decayed by live evidence (elapsed time with zero headcount). "
-            "This is a smoothed historical rate, not a trained model."
+            "hour) combined with live evidence as "
+            "p_noshow = 1 - (1 - prior) * still_coming, where still_coming halves "
+            "every 12 min past the grace period while headcount stays 0. This is a "
+            "smoothed historical rate plus a decay curve - a heuristic, not a "
+            "trained model."
         ),
         "threshold": settings.ghost_probability_threshold,
         "timestamp": at.isoformat(),
@@ -525,10 +563,11 @@ def _release(
 ) -> Booking:
     booking.status = "ghost_released"
     booking.released_at = at
+    minutes_after_start = (at - _aware(booking.start_ts)).total_seconds() / 60.0
     booking.release_reason = (
         f"p_noshow {decision['probability']:.2f} >= "
         f"{settings.ghost_probability_threshold:.2f} with zero headcount "
-        f"{at - _aware(booking.start_ts):.0f} min after start"
+        f"{minutes_after_start:.0f} min after start"
     )
     booking.decision_json = json.dumps(decision, default=str)
     db.add(booking)
@@ -716,10 +755,18 @@ def blocking_barrier_for_room(
         route = result
         return None
 
-    # Unreachable or degraded: find the offending barrier on the attempted path.
+    # Unreachable or degraded: find the offending barrier.
+    #
+    # When the planner *degraded*, ``edge_path`` is the stepped fallback it took,
+    # and a stepped path carries no barrier by definition - searching it would
+    # always come up empty and lose the real cause. So in that case we look at
+    # the step-free topology around the room instead. Only when there is no path
+    # at all (a severed network) is ``edge_path`` the right place to look, and
+    # there the neighbourhood search covers it too.
     edge_ids = list(result.get("edge_path") or [])
-    if not edge_ids:
-        edge_ids = _incident_edges(db, room.node_id)
+    if result.get("degraded") or not edge_ids:
+        nearby = _step_free_neighbourhood_edges(db, room.node_id)
+        edge_ids = nearby or edge_ids
 
     from app.core.constants import CATEGORY_LABELS
 
@@ -778,15 +825,46 @@ def _node_coords(db: Session, node_id: str) -> tuple[float, float]:
     return (float(node.latitude), float(node.longitude))
 
 
-def _incident_edges(db: Session, node_id: str) -> list[str]:
+def _step_free_neighbourhood_edges(
+    db: Session, node_id: str, depth: int = 3
+) -> list[str]:
+    """Step-free edges around ``node_id``, nearest first.
+
+    When the planner has to *degrade* to a stepped route, the edge path it
+    returns is the stepped one - and a stepped path carries no barrier, so
+    searching only those edges would never name the obstacle that caused the
+    degradation. Instead we walk outwards over the raw step-free topology
+    (barriers ignored) and let the caller look for a blocked one.
+
+    Nearest-first ordering matters: the edge closest to the room is the most
+    likely culprit and the most useful sentence to show a student.
+    """
     from app.db.models import CampusEdge
 
-    rows = db.scalars(
-        select(CampusEdge).where(
-            (CampusEdge.source_node_id == node_id) | (CampusEdge.target_node_id == node_id)
-        )
-    )
-    return [row.id for row in rows]
+    rows = list(db.scalars(select(CampusEdge).where(CampusEdge.is_step_free.is_(True))))
+
+    by_node: dict[str, list[CampusEdge]] = defaultdict(list)
+    for row in rows:
+        by_node[row.source_node_id].append(row)
+        by_node[row.target_node_id].append(row)
+
+    ordered: list[str] = []
+    seen: set[str] = {node_id}
+    frontier = [node_id]
+    for _ in range(max(0, depth)):
+        next_frontier: list[str] = []
+        for current in frontier:
+            for edge in by_node.get(current, ()):
+                if edge.id not in ordered:
+                    ordered.append(edge.id)
+                for end in (edge.source_node_id, edge.target_node_id):
+                    if end not in seen:
+                        seen.add(end)
+                        next_frontier.append(end)
+        frontier = next_frontier
+        if not frontier:
+            break
+    return ordered
 
 
 def match_rooms(
@@ -826,20 +904,11 @@ def match_rooms(
             )
             continue
 
-        conflicts = room_conflicts(db, room.id, start, end)
-        if conflicts:
-            listing = ", ".join(
-                f"{_aware(b.start_ts):%H:%M}-{_aware(b.end_ts):%H:%M}" for b in conflicts[:2]
-            )
-            excluded.append(
-                {
-                    "room": room.to_dict(),
-                    "reason_code": "booked",
-                    "reason": f"{room.name} excluded: already booked ({listing})",
-                }
-            )
-            continue
-
+        # Reachability is checked *before* the booking calendar on purpose. A
+        # room you cannot physically get to is not an option whether or not it
+        # happens to be free, and the barrier that severed it is the actionable
+        # sentence. Reporting "already booked" instead would hide exactly the
+        # reason this whole feature exists.
         if needs_step_free:
             if not room.is_step_free_access:
                 excluded.append(
@@ -857,6 +926,20 @@ def match_rooms(
             if blockage is not None:
                 excluded.append({"room": room.to_dict(), "reason_code": "unreachable", **blockage})
                 continue
+
+        conflicts = room_conflicts(db, room.id, start, end)
+        if conflicts:
+            listing = ", ".join(
+                f"{_aware(b.start_ts):%H:%M}-{_aware(b.end_ts):%H:%M}" for b in conflicts[:2]
+            )
+            excluded.append(
+                {
+                    "room": room.to_dict(),
+                    "reason_code": "booked",
+                    "reason": f"{room.name} excluded: already booked ({listing})",
+                }
+            )
+            continue
 
         node_lat, node_lng = _node_coords(db, room.node_id)
         distance_m = haversine_m(origin_lat, origin_lng, node_lat, node_lng)
