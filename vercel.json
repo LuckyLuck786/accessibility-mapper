@@ -7,23 +7,8 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 60,
-      "includeFiles": [
-        "accessibility-mapper/backend/app/**/*.py",
-        "accessibility-mapper/backend/app/db/**/*.py"
-      ],
-      "excludeFiles": [
-        "accessibility-mapper/backend/tests/**",
-        "accessibility-mapper/backend/data/**",
-        "accessibility-mapper/backend/media/**",
-        "accessibility-mapper/backend/.venv/**",
-        "accessibility-mapper/frontend/**",
-        "**/*.db",
-        "**/*.db-wal",
-        "**/*.db-shm",
-        "**/__pycache__/**",
-        "**/.pytest_cache/**",
-        "docs/**"
-      ]
+      "includeFiles": "accessibility-mapper/backend/app/**/*.py",
+      "excludeFiles": "accessibility-mapper/backend/tests/**,accessibility-mapper/backend/data/**,accessibility-mapper/frontend/**,**/*.db,**/__pycache__/**"
     }
   },
   "rewrites": [
