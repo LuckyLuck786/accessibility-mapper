@@ -28,6 +28,11 @@ os.environ["BLUR_LICENSE_PLATES"] = "true"
 os.environ["ADMIN_TOKEN"] = "test-admin-token"
 # Public reports must not auto-verify; that is the deployment policy we assert.
 os.environ["PUBLIC_REPORT_AUTO_VERIFY"] = "false"
+# The functional suite posts far more photos than a real client would, and every
+# TestClient shares one IP so they all share a quota bucket. The limit itself is
+# asserted on purpose in ``tests/test_abuse_limits.py`` with its own settings.
+os.environ["MAX_REPORTS_PER_HOUR"] = "500"
+os.environ["MAX_REPORTS_PER_DAY"] = "5000"
 
 from fastapi.testclient import TestClient  # noqa: E402
 

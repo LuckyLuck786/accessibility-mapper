@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import io
+import json
 import math
 
 import numpy as np
 import pytest
 from PIL import Image, ImageDraw, ImageFilter
 
+from app.core.config import settings
 from app.core.constants import BARRIER_CATEGORIES
 from app.services.cv_service import cv_service
+from app.services.media_service import fetch_media, store_analysis
 
 
 def make_photo(
@@ -156,14 +159,35 @@ def test_privacy_regions_are_redacted_before_storage():
     assert after.shape == before.shape
 
 
-def test_redacted_output_contains_no_metadata_sidecar_leak():
+def test_redacted_output_is_stored_in_the_database_with_a_sidecar(db_session):
     raw = make_photo(style="obstacle", seed=21)
     result = cv_service.process(raw)
-    stored = cv_service.save_redacted(result, prefix="test")
-    assert stored["image_path"].endswith(".jpg")
-    assert stored["absolute_path"]
-    sidecar = stored["privacy_sidecar"]
-    assert sidecar.endswith(".privacy.json")
+    stored = store_analysis(db_session, result)
+    db_session.commit()
+
+    assert stored["storage"] == "postgres-bytea"
+    assert stored["image_url"].startswith(settings.media_url_prefix)
+    assert stored["privacy_sidecar_url"].startswith(settings.media_url_prefix)
+
+    # A serverless filesystem is read-only, so the re-encoded JPEG must land in
+    # the database - and only the redacted bytes, never the original upload.
+    media = fetch_media(db_session, stored["media_id"])
+    assert media is not None
+    assert media.data == result.redacted_bytes
+    assert media.byte_size == len(result.redacted_bytes)
+    assert media.sha256 == result.sha256
+
+    # The sidecar is the signed record of what the privacy pass removed, and it
+    # is JSON rather than an image - so no EXIF can ride along with the photo.
+    sidecar = fetch_media(db_session, stored["sidecar_id"])
+    assert sidecar is not None
+    assert sidecar.content_type == "application/json"
+    payload = json.loads(sidecar.data)
+    assert payload["sha256"] == result.sha256
+
+    with Image.open(io.BytesIO(media.data)) as served:
+        assert served.format == "JPEG"
+        assert not served.getexif(), "redacted output must not carry EXIF"
 
 
 def test_low_quality_photo_reduces_confidence():

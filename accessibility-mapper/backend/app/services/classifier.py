@@ -376,28 +376,87 @@ class HeuristicBarrierClassifier:
         return results
 
 
+def _alternation(profile) -> float:  # type: ignore[no-untyped-def]
+    """How many times a 1-D intensity profile reverses direction.
+
+    Hazard tape is a repeating light/dark band, so evenly spaced reversals are
+    the signature. Counting *reversals* rather than steep per-pixel gradients
+    matters: a slanted band viewed through a column average is a smooth ramp,
+    so its per-pixel slope is tiny even though the band is unmistakable.
+
+    A reversal only counts when the profile has actually travelled at least a
+    quarter of its total range since the previous reversal, which stops sensor
+    noise from scoring as tape.
+    """
+    import numpy as np  # type: ignore
+
+    profile = np.asarray(profile, dtype=np.float64).ravel()
+    if profile.size < 8:
+        return 0.0
+    if profile.size > 3:
+        profile = np.convolve(profile, np.ones(3) / 3.0, mode="same")
+
+    spread = float(profile.max() - profile.min())
+    if spread < 8.0:
+        return 0.0
+
+    slope = np.sign(np.diff(profile))
+    travel_floor = 0.25 * spread
+    turns = 0
+    last_turn = 0
+    direction = 0
+    for index in range(1, slope.size):
+        step = slope[index]
+        if step == 0:
+            continue
+        if direction and step != direction:
+            if abs(profile[index] - profile[last_turn]) >= travel_floor:
+                turns += 1
+                last_turn = index
+        direction = step
+    return float(_clamp(turns / float(profile.size) * 4.0))
+
+
+def _shear_profile(grey, shear: float = 0.5):  # type: ignore[no-untyped-def]
+    """Collapse the image along a slanted axis so diagonal bands survive.
+
+    Averaging along rows or columns cancels out slanted stripes: every column
+    still crosses the same bands, so the mean is nearly flat and the alternation
+    signal disappears. Shearing first aligns the bands with the sampling
+    direction, which is what real hazard tape looks like.
+    """
+    import numpy as np  # type: ignore
+
+    height, width = grey.shape[:2]
+    span = int(shear * height)
+    length = width - span
+    if length < 16:
+        return None
+    offsets = (np.arange(height) * shear).astype(int)
+    profile = np.zeros(length, dtype=np.float64)
+    for y in range(height):
+        start = offsets[y]
+        profile[:length] += grey[y, start : start + length]
+    profile /= float(height)
+    return profile
+
+
 def _stripe_score(grey) -> float:  # type: ignore[no-untyped-def]
-    """Fraction of strong-gradient runs that alternate - hazard-tape signature."""
+    """Alternating-band strength - the hazard-tape signature.
+
+    Orientation-agnostic on purpose: real barrier tape is diagonal, so a plain
+    row/column average would miss exactly the case we care most about.
+    """
     import numpy as np  # type: ignore
 
     if grey.size == 0:
         return 0.0
-    row = grey.mean(axis=0).astype(np.int16)
-    if row.size < 8:
-        return 0.0
-    gradient = np.abs(np.diff(row))
-    strong = gradient > max(12.0, float(gradient.mean()) * 1.6)
-    if strong.size < 4:
-        return 0.0
-    runs = 0
-    previous = bool(strong[0])
-    for value in strong[1:]:
-        current = bool(value)
-        if current != previous:
-            runs += 1
-        previous = current
-    transitions = runs / float(len(strong))
-    return float(_clamp(transitions * 4.0))
+    best = _alternation(grey.mean(axis=0))
+    best = max(best, _alternation(grey.mean(axis=1)))
+    sheared = _shear_profile(grey)
+    if sheared is not None:
+        best = max(best, _alternation(sheared))
+    return float(best)
 
 
 # -----------------------------------------------------------------------

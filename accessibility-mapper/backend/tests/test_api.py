@@ -117,7 +117,10 @@ def test_report_creates_barrier_with_cv_and_privacy_payload(client):
     assert body["cv"]["engine"] in ("yolov8", "heuristic")
     assert body["privacy"]["exif_stripped"] is True
     assert body["dedupe"]["checked_radius_m"] == 15.0
-    assert body["image"]["image_path"].endswith(".jpg")
+    # Media lives in Postgres on a serverless box, not on a local disk.
+    assert body["image"]["media_id"]
+    assert body["image"]["image_url"].startswith("/api/v1/media/")
+    assert body["image"]["storage"] == "postgres-bytea"
     assert body["auto_verify"]["threshold"] == 0.85
 
 
@@ -248,9 +251,9 @@ def test_barrier_list_filters_and_pagination(client):
     assert all(item["category"] == "broken_lift" for item in lifts["items"])
 
 
-def test_resolving_updates_the_ticket_and_the_edge_weight(client, admin_token):
-    headers = {"Authorization": f"Bearer {admin_token}"}
-    queue = client.get("/api/v1/admin/tickets").json()
+def test_resolving_updates_the_ticket_and_the_edge_weight(client, admin_token, admin_headers):
+    headers = {**admin_headers, "Authorization": f"Bearer {admin_token}"}
+    queue = client.get("/api/v1/admin/tickets", headers=admin_headers).json()
     assert queue["total"] >= 2
 
     target = queue["items"][0]
@@ -281,8 +284,8 @@ def test_resolving_updates_the_ticket_and_the_edge_weight(client, admin_token):
     )
 
 
-def test_admin_analytics_payload_is_complete(client):
-    analytics = client.get("/api/v1/admin/analytics").json()
+def test_admin_analytics_payload_is_complete(client, admin_headers):
+    analytics = client.get("/api/v1/admin/analytics", headers=admin_headers).json()
     kpis = analytics["kpis"]
     assert kpis["total_barriers"] >= 3
     assert kpis["active_barriers"] >= 3
@@ -308,8 +311,8 @@ def test_maintenance_sweep_is_idempotent(client, admin_token):
     assert "expired" in first.json()
 
 
-def test_policies_endpoint_publishes_thresholds(client):
-    policies = client.get("/api/v1/admin/policies").json()
+def test_policies_endpoint_publishes_thresholds(client, admin_headers):
+    policies = client.get("/api/v1/admin/policies", headers=admin_headers).json()
     assert policies["auto_verify_confidence"] == 0.85
     assert policies["consensus_confirmations"] == 2
     assert policies["duplicate_radius_m"] == 15.0
@@ -331,7 +334,7 @@ def test_redacted_image_is_served_over_media_mount(client):
         data={"latitude": "47.66010", "longitude": "-122.30200", "category": "obstacle"},
     ).json()
     url = created["barrier"].get("image_url")
-    assert url and url.startswith("/media/uploads/")
+    assert url and url.startswith("/api/v1/media/")
     image = client.get(url)
     assert image.status_code == 200
     assert image.headers["content-type"].startswith("image/")
