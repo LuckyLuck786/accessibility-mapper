@@ -6,8 +6,24 @@
   "installCommand": "echo skipped",
   "functions": {
     "api/index.py": {
-      "memory": 1769,
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": [
+        "accessibility-mapper/backend/app/**/*.py",
+        "accessibility-mapper/backend/app/db/**/*.py"
+      ],
+      "excludeFiles": [
+        "accessibility-mapper/backend/tests/**",
+        "accessibility-mapper/backend/data/**",
+        "accessibility-mapper/backend/media/**",
+        "accessibility-mapper/backend/.venv/**",
+        "accessibility-mapper/frontend/**",
+        "**/*.db",
+        "**/*.db-wal",
+        "**/*.db-shm",
+        "**/__pycache__/**",
+        "**/.pytest_cache/**",
+        "docs/**"
+      ]
     }
   },
   "rewrites": [
@@ -17,7 +33,9 @@
   "headers": [
     {
       "source": "/assets/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
     }
   ]
 }
