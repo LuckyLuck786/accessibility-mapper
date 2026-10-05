@@ -154,7 +154,9 @@ function Shell() {
 
       <header className="z-[600] flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 shadow-sm sm:flex-nowrap">
         <img src="/favicon.svg" alt="" className="hidden h-8 w-8 sm:block" onError={(event) => { event.currentTarget.style.display = 'none' }} />
-        <div className="min-w-0">
+        {/* flex-1 (basis-0) lets the title share row 1 with the actions even when
+            flex-wrap breaks lines on content width — prevents a 3-row header. */}
+        <div className="min-w-0 flex-1">
           <h1 className="truncate text-sm font-bold text-slate-900">
             {overview?.app ?? 'Campus Accessibility Mapper'}
           </h1>

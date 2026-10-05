@@ -40,3 +40,7 @@ Thumbs.db
 .vscode/
 *.swp
 .env*
+
+# --- playwright ------------------------------------------------------------
+playwright-report/
+test-results/
