@@ -152,16 +152,20 @@ function Shell() {
         Skip to map
       </a>
 
-      <header className="z-[600] flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 shadow-sm">
+      <header className="z-[600] flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-2 shadow-sm sm:flex-nowrap">
         <img src="/favicon.svg" alt="" className="hidden h-8 w-8 sm:block" onError={(event) => { event.currentTarget.style.display = 'none' }} />
         <div className="min-w-0">
           <h1 className="truncate text-sm font-bold text-slate-900">
             {overview?.app ?? 'Campus Accessibility Mapper'}
           </h1>
-          <p className="text-[11px] text-slate-500">
-            {overview
-              ? `${overview.graph.nodes} nodes · ${overview.graph.edges} paths · CV: ${overview.cv.engine} · ${overview.database}`
-              : 'Connecting to the campus API…'}
+          <p className="text-[10px] text-slate-500 xs:text-[11px]">
+            {overview ? (
+              <>
+                {overview.graph.nodes} nodes · {overview.graph.edges} paths ·{' '}
+                <span className="hidden xs:inline">CV: {overview.cv.engine} · </span>
+                {overview.database}
+              </>
+            ) : 'Connecting to the campus API…'}
           </p>
         </div>
 
@@ -211,7 +215,7 @@ function Shell() {
 
         <nav
           aria-label="Primary"
-          className="w-full shrink-0 overflow-x-auto sm:order-none sm:w-auto"
+          className="mt-1.5 flex w-full flex-wrap items-center gap-1.5 sm:mt-0 sm:w-auto sm:flex-nowrap"
         >
           {VIEWS.map(({ id, label, icon: Icon, hint }) => (
             <button
@@ -220,14 +224,14 @@ function Shell() {
               onClick={() => setView(id)}
               aria-current={view === id ? 'page' : undefined}
               title={hint}
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold ring-1 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-campus-600 ${
+              className={`inline-flex shrink-0 items-center gap-1 rounded-xl px-2.5 py-1 text-[10px] font-semibold ring-1 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-campus-600 sm:px-3 sm:py-1.5 sm:text-xs ${
                 view === id
                   ? 'bg-campus-700 text-white ring-campus-700'
                   : 'bg-white text-slate-700 ring-slate-300 hover:bg-slate-50'
               }`}
             >
               <Icon className="h-4 w-4" aria-hidden />
-              <span className="whitespace-nowrap">{label}</span>
+              <span className="hidden xs:inline">{label}</span>
             </button>
           ))}
         </nav>
@@ -267,7 +271,7 @@ function Shell() {
             type="button"
             onClick={() => setSidebarOpen(true)}
             aria-label="Open route planner"
-            className="absolute left-3 top-3 z-[450] flex items-center gap-1.5 rounded-xl bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-300 shadow-md hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-campus-600 lg:hidden"
+            className="absolute top-3 right-3 z-[450] flex items-center gap-1.5 rounded-xl bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-300 shadow-md hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-campus-600 lg:hidden"
           >
             <PanelLeft className="h-4 w-4" aria-hidden />
             <span>Route planner</span>
