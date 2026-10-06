@@ -20,14 +20,23 @@ test('FAB opens drawer, close button is clickable and closes it', async ({ page 
 
   // Regression: the drawer's close button must be the top element at its
   // own position (previously the z-600 header intercepted the click).
+  //
+  // Poll rather than sampling once: the drawer slides in over 300ms, and while
+  // it is still translating the close button's centre can sit outside the
+  // viewport, where elementFromPoint returns null. Polling also keeps the
+  // assertion meaningful if the bug regresses — it simply never becomes true.
   const close = page.locator('button[aria-label="Close route planner"]')
   await expect(close).toBeVisible()
-  const topAtClose = await close.evaluate((el) => {
-    const r = el.getBoundingClientRect()
-    const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)
-    return el.contains(top) || top === el
-  })
-  expect(topAtClose).toBe(true)
+  await expect(close).toBeInViewport()
+  await expect
+    .poll(() =>
+      close.evaluate((el) => {
+        const r = el.getBoundingClientRect()
+        const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)
+        return el.contains(top) || top === el
+      }),
+    )
+    .toBe(true)
 
   await close.click()
   await expect(async () => {
